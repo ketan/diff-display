@@ -5,4 +5,9 @@ module Diff
   end
 end
 
-require 'diff/display/version'
+require "diff/display/version"
+require "diff/display/data_structure"
+require "diff/display/unified"
+require "diff/display/unified/generator"
+
+require "diff/renderer/base"
