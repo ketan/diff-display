@@ -26,6 +26,9 @@ module Diff
       def before_addblock(block)
       end
       
+      def before_sepblock(block)
+      end
+      
       def headerline(line)
         line
       end
@@ -59,6 +62,9 @@ module Diff
       end
       
       def after_addblock(block)
+      end
+      
+      def after_sepblock(block)
       end
       
       def new_line
