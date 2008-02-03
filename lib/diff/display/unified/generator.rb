@@ -1,5 +1,3 @@
-# TODO: simply prev_buffer+buffer to only use a single linebuffer since we don't need it
-
 module Diff::Display
   # Processes the diff and generates a Data object which contains the
   # resulting data structure.
@@ -136,26 +134,11 @@ module Diff::Display
       # its primary function is to add a Rem and an Add pair which
       # potentially have inline changes
       def process_line(oldline, newline)
-        start, ending = get_change_extent(oldline, newline)
-
         # -
-        line = inline_diff(oldline, start, ending)
-        current_block << Line.rem(line, @offset_base += 1, true)
+        current_block << Line.rem(oldline, @offset_base += 1)
 
         # +
-        line = inline_diff(newline, start, ending)
-        current_block << Line.add(line, @offset_changed += 1, true)
-      end
-
-      # Inserts string formating characters around the section of a string
-      # that differs internally from another line so that the Line class
-      # can insert the desired formating
-      def inline_diff(line, start, ending)
-        # line[0, start] + 
-        # #'%s' + extract_change(line, start, ending) + '%s' + 
-        # extract_change(line, start, ending) + 
-        # line[ending, ending.abs]
-        line
+        current_block << Line.add(newline, @offset_changed += 1)
       end
 
       def add_separator

@@ -11,3 +11,4 @@ require "diff/display/unified"
 require "diff/display/unified/generator"
 
 require "diff/renderer/base"
+require "diff/renderer/diff"

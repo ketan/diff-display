@@ -8,6 +8,7 @@ module Diff
       
       def render(renderer, out="")
         out << renderer.render(data)
+        out
       end
     end
   end
