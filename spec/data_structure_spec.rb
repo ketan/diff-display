@@ -31,6 +31,11 @@ describe "Diff::Display data structures" do
       line = Diff::Display::Line.unmod("foo", 7)
       line.should be_instance_of(Diff::Display::UnModLine)
     end
+    
+    it "has a class method for creating a HeaderLine" do
+      line = Diff::Display::Line.header("foo")
+      line.should be_instance_of(Diff::Display::HeaderLine)
+    end
   end
   
   describe "Block" do
@@ -59,6 +64,11 @@ describe "Diff::Display data structures" do
     it "has class method for creating an UnModBlock" do
       block = Diff::Display::Block.unmod
       block.should be_instance_of(Diff::Display::UnModBlock)
+    end
+    
+    it "has class method for creating an HeaderBlock" do
+      block = Diff::Display::Block.header
+      block.should be_instance_of(Diff::Display::HeaderBlock)
     end
   end
   

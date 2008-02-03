@@ -4,6 +4,27 @@ module Diff
       def initialize
         super
       end
+      
+      def to_diff
+        diff = ""
+        each do |block|
+          block.each do |line|
+            case line
+            when HeaderLine
+              diff << "#{line}\n"
+            when UnModLine
+              diff << " #{line}\n"
+            when SepLine
+              diff << "\n"
+            when AddLine
+              diff << "+#{line}\n"
+            when RemLine
+              diff << "-#{line}\n"
+            end
+          end
+        end
+        diff.chomp
+      end
     end
     
     # Every line from the passed in diff gets transformed into an instance of
@@ -24,9 +45,14 @@ module Diff
         def unmod(line, line_number)
           UnModLine.new(line, line_number)
         end
+        
+        def header(line)
+          HeaderLine.new(line)
+        end
       end
       
       def initialize(line, line_number)
+        super(line)
         @number = line_number
       end
       attr_reader :number
@@ -56,6 +82,12 @@ module Diff
       end
     end
     
+    class HeaderLine < Line
+      def initialize(line)
+        super(line, nil)
+      end
+    end
+    
     # This class is an array which contains Line objects. Just like Line
     # classes, several Block classes inherit from Block. If all the lines
     # in the block are added lines then it is an AddBlock. If all lines
@@ -66,19 +98,21 @@ module Diff
     # modified and unmodified lines.
     class Block < Array
       class << self
-        def add;   AddBlock.new   end 
-        def rem;   RemBlock.new   end
-        def mod;   ModBlock.new   end
-        def unmod; UnModBlock.new end
+        def add;    AddBlock.new    end 
+        def rem;    RemBlock.new    end
+        def mod;    ModBlock.new    end
+        def unmod;  UnModBlock.new  end
+        def header; HeaderBlock.new end
       end
     end
 
     #:stopdoc:#
-    class AddBlock   < Block;   end  
-    class RemBlock   < Block;   end
-    class ModBlock   < Block;   end
-    class UnModBlock < Block;   end
-    class SepBlock   < Block;   end
+    class AddBlock    < Block;  end  
+    class RemBlock    < Block;  end
+    class ModBlock    < Block;  end
+    class UnModBlock  < Block;  end
+    class SepBlock    < Block;  end
+    class HeaderBlock < Block;  end
     #:startdoc:#
   end
 end

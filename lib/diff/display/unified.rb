@@ -7,7 +7,7 @@ module Diff
       attr_reader :data
       
       def render(renderer, out="")
-        out << renderer.render
+        out << renderer.render(data)
       end
     end
   end

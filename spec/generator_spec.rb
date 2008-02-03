@@ -25,11 +25,11 @@ describe Diff::Display::Unified::Generator do
     generated.should be_instance_of(Diff::Display::Data)
   end
   
-  it "#process builds up the diff" do
-    load_diff("simple").each do |line|
-      @generator.process(line)
+  it "the returned that object is in parity with the diff" do
+    %w[simple only_add  only_rem multiple_adds_after_rem].each do |diff|
+      data = Diff::Display::Unified::Generator.run(load_diff(diff))
+      data.to_diff.should == load_diff(diff).chomp
     end
-    @generator.data.should_not be_empty
   end
   
 end

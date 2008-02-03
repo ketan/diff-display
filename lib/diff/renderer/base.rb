@@ -1,7 +1,7 @@
 module Diff
   module Renderer
     class Base
-      def render
+      def render(data)
         ""
       end
     end
