@@ -21,9 +21,15 @@ describe Diff::Display::Unified::Generator do
   
   it "Generator.run returns the data" do
     Diff::Display::Unified::Generator.expects(:new).returns(@generator)
-    @generator.expects(:data).returns("foo")
     generated = Diff::Display::Unified::Generator.run("foo\nbar")
-    generated.should == "foo"
+    generated.should be_instance_of(Diff::Display::Data)
+  end
+  
+  it "#process builds up the diff" do
+    load_diff("simple").each do |line|
+      @generator.process(line)
+    end
+    @generator.data.should_not be_empty
   end
   
 end
