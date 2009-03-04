@@ -46,7 +46,7 @@ class TestDatastructure < Test::Unit::TestCase
   end
   
   # Block
-  def test_behaves_like_an_array
+  def test_block_behaves_like_an_array
     block = Diff::Display::Block.new
     block.push 1,2,3
     assert_equal 3, block.size

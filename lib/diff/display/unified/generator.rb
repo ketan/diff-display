@@ -19,6 +19,7 @@ module Diff::Display
       raise ArgumentError, "Object must be enumerable" unless udiff.respond_to?(:each_line)
       generator = new
       udiff.each_line {|line| generator.process(line.chomp)}
+      generator.finish
       generator.data
     end
     
@@ -35,8 +36,15 @@ module Diff::Display
     # Finishes up with the generation and returns the Data object (could
     # probably use a better name...maybe just #data?)
     def data
-      close
       @data
+    end
+    
+    # This method is called once the generator is done with the unified
+    # diff. It is a finalizer of sorts. By the time it is called all data
+    # has been collected and processed.
+    def finish
+      # certain things could be set now that processing is done
+      identify_block
     end
     
     # Operates on a single line from the diff and passes along the
@@ -74,14 +82,29 @@ module Diff::Display
       #   + As is this one
       #   + And yet another one...
       #
-      if new_line_type.eql?(@line_type)
+      if new_line_type == @line_type
         @buffer.push(line)
       else
+        # Side by side inline diff
+        #
+        # e.g.
+        #
+        #   - This line just had to go
+        #   + This line is on the way in
+        #
+        if new_line_type == :add && @line_type == :rem
+          @prev_buffer = @buffer
+          @prev_line_type = @line_type
+        # else
+        #   identify_block
+        end
         identify_block
+        
         @buffer = [line]
         @line_type = new_line_type
       end
       
+      #p [line.to_s, @line_type, @prev_line_type, @prev_buffer, @buffer]
     end
     
     protected
@@ -93,26 +116,77 @@ module Diff::Display
         false
       end
       
+      # def identify_block
+      #   if LINE_TYPES.values.include?(@line_type)
+      #     process_block(@line_type)
+      #   end
+      # 
+      #   @prev_line_type = nil
+      # end
+      
+      # def process_block(diff_line_type)
+      #   push Block.send(diff_line_type)
+      #   unroll_buffer
+      # end
       def identify_block
-        if LINE_TYPES.values.include?(@line_type)
-          process_block(@line_type)
+        if @prev_line_type == :rem && @line_type == :add
+          
+          process_block(:mod, true, true)
+        else
+          if LINE_TYPES.values.include?(@line_type)
+            process_block(@line_type, true)
+          end
         end
-
+      
         @prev_line_type = nil
       end
-      
-      def process_block(diff_line_type)
+
+      def process_block(diff_line_type, isnew = false, isold = false)
         push Block.send(diff_line_type)
-        unroll_buffer
+        
+        # Mod block
+        if diff_line_type.eql?(:mod) && (@prev_buffer.size & @buffer.size) == 1
+          process_line(@prev_buffer.first, @buffer.first)
+          return
+        end
+
+        unroll_prev_buffer if isold
+        unroll_buffer      if isnew
       end
 
-      def add_separator
-        push SepBlock.new 
-        current_block << SepLine.new 
+      # TODO Needs a better name...it does process a line (two in fact) but
+      # its primary function is to add a Rem and an Add pair which
+      # potentially have inline changes
+      def process_line(oldline, newline)
+        #p [oldline, newline]
+        start, ending = get_change_extent(oldline, newline)
+
+        # -
+        line = inline_diff(oldline, start, ending)
+        current_block << Line.rem(line, @offset[0] += 1, true)
+
+        # +
+        line = inline_diff(newline, start, ending)
+        current_block << Line.add(line, @offset[1] += 1, true)
       end
 
       def extract_change(line, start, ending)
         line.size > (start - ending) ? line[start...ending] : ''
+      end
+      
+      # Inserts string formating characters around the section of a string
+      # that differs internally from another line so that the Line class
+      # can insert the desired formating
+      def inline_diff(line, start, ending)
+        return line if (start-ending) == start
+        line[0, start] + 
+          '%s' + extract_change(line, start, ending) + '%s' + 
+          line[ending, ending.abs]
+      end
+      
+      def add_separator
+        push SepBlock.new 
+        current_block << SepLine.new 
       end
 
       def car(line)
@@ -136,6 +210,33 @@ module Diff::Display
       def prev_buffer
         @prev_buffer
       end
+      
+      def unroll_prev_buffer
+        # return if @prev_buffer.empty?
+        # @prev_buffer.each  do |line| 
+        #   @offset[0] += 1 
+        #   current_block << Line.send(@prev_line_type, line, @offset[0])
+        # end
+        return if @prev_buffer.empty?
+        @prev_buffer.each do |line| 
+          case @prev_line_type
+            when :add
+              @offset[1] += 1
+              current_block << Line.send(@prev_line_type, line, @offset[1])
+            when :rem
+              @offset[0] += 1
+              current_block << Line.send(@prev_line_type, line, @offset[0])
+            when :rmod
+              @offset[0] += 1
+              @offset[1] += 1 # TODO: is that really correct?
+              current_block << Line.send(@prev_line_type, line, @offset[0])
+            when :unmod
+              @offset[0] += 1
+              @offset[1] += 1
+              current_block << Line.send(@prev_line_type, line, *@offset)
+          end
+        end
+      end
 
       def unroll_buffer
         return if @buffer.empty?
@@ -147,20 +248,16 @@ module Diff::Display
             when :rem
               @offset[0] += 1
               current_block << Line.send(@line_type, line, @offset[0])
+            when :rmod
+              @offset[0] += 1
+              @offset[1] += 1 # TODO: is that really correct?
+              current_block << Line.send(@line_type, line, @offset[0])
             when :unmod
               @offset[0] += 1
               @offset[1] += 1
               current_block << Line.send(@line_type, line, *@offset)
           end
         end
-      end
-
-      # This method is called once the generator is done with the unified
-      # diff. It is a finalizer of sorts. By the time it is called all data
-      # has been collected and processed.
-      def close
-        # certain things could be set now that processing is done
-        identify_block
       end
 
       # Determines the extent of differences between two string. Returns

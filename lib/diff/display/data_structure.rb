@@ -34,12 +34,12 @@ module Diff
     # a SepLine class which represents all the lines that aren't part of the diff.
     class Line < String
       class << self
-        def add(line, line_number)
-          AddLine.new(line, line_number)
+        def add(line, line_number, inline = false)
+          AddLine.new(line, line_number, inline)
         end
       
-        def rem(line, line_number)
-          RemLine.new(line, line_number)
+        def rem(line, line_number, inline = false)
+          RemLine.new(line, line_number, inline)
         end
       
         def unmod(line, old_number, new_number)
@@ -57,20 +57,38 @@ module Diff
       end
       attr_reader :old_number, :new_number
       
+      def inline_changes?
+        # Is set in the AddLine+RemLine subclasses
+        @inline
+      end
+      
       def inspect
         %Q{#<#{self.class.name} [#{old_number.inspect}-#{new_number.inspect}] "#{self}">}
       end
     end
     
+    # class AddLine < Line
+    #   def initialize(line, line_number)
+    #     super(line, nil, line_number)
+    #   end
+    # end
+    # 
+    # class RemLine < Line
+    #   def initialize(line, line_number)
+    #     super(line, line_number, nil)
+    #   end
+    # end
     class AddLine < Line
-      def initialize(line, line_number)
+      def initialize(line, line_number, inline = false)
         super(line, nil, line_number)
+        @inline = inline
       end
     end
     
     class RemLine < Line
-      def initialize(line, line_number)
+      def initialize(line, line_number, inline = false)
         super(line, line_number, nil)
+        @inline = inline
       end
     end
     

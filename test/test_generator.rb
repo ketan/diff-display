@@ -42,8 +42,41 @@ class TestGenerator < Test::Unit::TestCase
   end
   
   def test_doesnt_parse_linenumbers_that_isnt_part_if_the_diff
-    assert_equal (1..14).map{|l| [nil, l] }.to_a, line_numbers_for(:pseudo_recursive).compact
+    range = 1..14
+    expected_lines = range.to_a.map{|l| [nil, l] }
+    assert_equal expected_lines, line_numbers_for(:pseudo_recursive).compact
   end
+  
+  # def test_a_changed_string_becomes_a_modblock
+  #   diff_data = load_diff("simple_oneliner")
+  #   data = "-foo\n+moo"
+  #   gen = data.each_line{|line| @generator.process(line) }
+  #   @generator.finish
+  #   
+  #   assert_equal 1, @generator.data.size
+  #   assert_instance_of Diff::Display::ModBlock, @generator.data.first
+  #   assert_equal 2, @generator.data[0].size, @generator.data[0].inspect
+  #   
+  #   rem = @generator.data[0][0]
+  #   add = @generator.data[0][1]    
+  #   assert_instance_of Diff::Display::RemLine, rem
+  #   assert_instance_of Diff::Display::AddLine, add    
+  #   assert add.inline_changes?
+  #   assert rem.inline_changes?
+  # end
+  # 
+  # def test_a_changed_string_followed_by_two_new_ones_becomes_a_modblock_and_an_addblock
+  #   diff_data = load_diff("simple_oneliner")
+  #   data = "-foo\n+moo\n+bar\n+baz"
+  #   gen = data.each_line{|line| @generator.process(line) }
+  #   @generator.finish
+  #   
+  #   assert_equal 2, @generator.data.size
+  #   assert_instance_of Diff::Display::ModBlock, @generator.data.first
+  #   assert_instance_of Diff::Display::AddBlock, @generator.data.last
+  #   assert_equal 2, @generator.data[0].size
+  #   assert_equal 2, @generator.data[1].size
+  # end
 
   # line numbering
   def test_numbers_correctly_for_multiple_adds_after_rem

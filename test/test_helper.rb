@@ -10,8 +10,13 @@ if RUBY_VERSION > '1.9'
   end
 end
 require 'test/unit'
+require "rubygems"
 gem("mocha", ">=0")
 require "mocha"
+begin
+  require "redgreen"
+rescue LoadError
+end
 
 module DiffFixtureHelper
   def load_diff(name)
