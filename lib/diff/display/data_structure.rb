@@ -34,7 +34,8 @@ module Diff
           print "-" * 40, ' ', demodularize.call(diff_block)
           puts
           puts diff_block.map {|line| 
-            "%5d" % line.old_number + 
+            # "%5d" % line.old_number + 
+            "%8s" % "[#{line.old_number || '.'} #{line.new_number || '.'}]" +
             " [#{demodularize.call(line)}#{'(i)' if line.inline_changes?}]" +
             line
           }.join("\n")
