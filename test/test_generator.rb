@@ -29,10 +29,18 @@ class TestGenerator < Test::Unit::TestCase
   end
   
   def test_the_returned_that_object_is_in_parity_with_the_diff
-    %w[big multiple_rems_then_add only_rem simple multiple_adds_after_rem only_add pseudo_recursive simple_oneliner].each do |diff|
+    %w[multiple_rems_then_add only_rem simple multiple_adds_after_rem only_add pseudo_recursive simple_oneliner].each do |diff|
       data = Diff::Display::Unified::Generator.run(load_diff(diff))
       assert_equal load_diff(diff).chomp, data.to_diff, "failed on #{diff}"
     end
+  end
+  
+  def test_big
+    diff_data = load_diff("big")
+    data = Diff::Display::Unified::Generator.run(diff_data)
+    # puts data.to_diff
+    # assert false
+    assert_equal diff_data.chomp, data.to_diff
   end
   
   def test_multiple_rems_and_an_add_is_in_parity
@@ -58,13 +66,11 @@ class TestGenerator < Test::Unit::TestCase
   
   # def test_a_changed_string_becomes_a_modblock
   #   diff_data = load_diff("simple_oneliner")
-  #   data = "-foo\n+moo"
-  #   gen = data.each_line{|line| @generator.process(line) }
-  #   @generator.finish
-  #   
-  #   assert_equal 1, @generator.data.size
-  #   assert_instance_of Diff::Display::ModBlock, @generator.data.first
-  #   assert_equal 2, @generator.data[0].size, @generator.data[0].inspect
+  #   data = Diff::Display::Unified::Generator.run(diff_data)
+  #   puts data.debug
+  #   assert_equal 1, data.size
+  #   assert_instance_of Diff::Display::ModBlock, data.first
+  #   assert_equal 2, data[0].size, data[0].inspect
   #   
   #   rem = @generator.data[0][0]
   #   add = @generator.data[0][1]    
@@ -72,19 +78,6 @@ class TestGenerator < Test::Unit::TestCase
   #   assert_instance_of Diff::Display::AddLine, add    
   #   assert add.inline_changes?
   #   assert rem.inline_changes?
-  # end
-  # 
-  # def test_a_changed_string_followed_by_two_new_ones_becomes_a_modblock_and_an_addblock
-  #   diff_data = load_diff("simple_oneliner")
-  #   data = "-foo\n+moo\n+bar\n+baz"
-  #   gen = data.each_line{|line| @generator.process(line) }
-  #   @generator.finish
-  #   
-  #   assert_equal 2, @generator.data.size
-  #   assert_instance_of Diff::Display::ModBlock, @generator.data.first
-  #   assert_instance_of Diff::Display::AddBlock, @generator.data.last
-  #   assert_equal 2, @generator.data[0].size
-  #   assert_equal 2, @generator.data[1].size
   # end
 
   # line numbering

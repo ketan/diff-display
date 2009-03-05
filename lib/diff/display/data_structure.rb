@@ -40,6 +40,7 @@ module Diff
           }.join("\n")
           puts "-" * 40, ' ' 
         end
+        nil
       end
     end
     
@@ -74,6 +75,7 @@ module Diff
       def initialize(line, old_number = nil, new_number = nil)
         super(line)
         @old_number, @new_number = old_number, new_number
+        @inline = false
       end
       attr_reader :old_number, :new_number
       
