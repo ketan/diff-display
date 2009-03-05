@@ -134,7 +134,7 @@ module Diff::Display
       # potentially have inline changes
       def process_lines_with_differences(oldline, newline)
         start, ending = get_change_extent(oldline, newline)
-
+        
         # -
         line = inline_diff(oldline, start, ending)
         process_line(line, :rem, true)
@@ -143,19 +143,16 @@ module Diff::Display
         line = inline_diff(newline, start, ending)
         process_line(line, :add, true)
       end
-
-      def extract_change(line, start, ending)
-        line.size > (start - ending) ? line[start...ending] : ''
-      end
       
       # Inserts string formating characters around the section of a string
       # that differs internally from another line so that the Line class
       # can insert the desired formating
       def inline_diff(line, start, ending)
-        return line if (start-ending) == start
-        line[0, start] + 
-          '\\0' + extract_change(line, start, ending) + '\\1' + 
-          line[ending, ending.abs]
+        if start != 0 || ending != 0
+          last = ending + line.length
+          str = line[0...start] + '\0' + line[start...last] + '\1' + line[last...line.length]
+        end
+        str || line
       end
       
       def add_separator

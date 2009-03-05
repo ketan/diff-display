@@ -90,6 +90,15 @@ module Diff
         @inline
       end
       
+      # returns the prefix, middle and postfix parts of a line with inline changes
+      def segments
+        return self.dup unless inline_changes?
+        prefix, changed = self.dup.split('\\0')
+        changed, postfix = changed.split('\\1')
+        [prefix, changed, postfix]
+      end
+      
+      # Expand any inline changes with +prefix+ and +postfix+
       def expand_inline_changes_with(prefix, postfix)
         return self.dup unless inline_changes?
         str = self.dup
