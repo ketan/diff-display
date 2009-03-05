@@ -15,23 +15,23 @@ class TestGenerator < Test::Unit::TestCase
     end
   end
   
-  def test_Generator_run_processes_each_line_in_the_diff
+  def test_generator_run_processes_each_line_in_the_diff
     Diff::Display::Unified::Generator.expects(:new).returns(@generator)
     @generator.expects(:process).with("foo")
     @generator.expects(:process).with("bar")
     Diff::Display::Unified::Generator.run("foo\nbar")
   end
   
-  def test_Generator_run_returns_the_data
+  def test_generator_run_returns_the_data
     Diff::Display::Unified::Generator.expects(:new).returns(@generator)
     generated = Diff::Display::Unified::Generator.run("foo\nbar")
     assert_instance_of Diff::Display::Data, generated
   end
   
   def test_the_returned_that_object_is_in_parity_with_the_diff
-    %w[simple only_add  only_rem multiple_adds_after_rem].each do |diff|
+    %w[big multiple_rems_then_add only_rem simple multiple_adds_after_rem only_add pseudo_recursive simple_oneliner].each do |diff|
       data = Diff::Display::Unified::Generator.run(load_diff(diff))
-      assert_equal load_diff(diff).chomp, data.to_diff
+      assert_equal load_diff(diff).chomp, data.to_diff, "failed on #{diff}"
     end
   end
   
@@ -45,6 +45,15 @@ class TestGenerator < Test::Unit::TestCase
     range = 1..14
     expected_lines = range.to_a.map{|l| [nil, l] }
     assert_equal expected_lines, line_numbers_for(:pseudo_recursive).compact
+  end
+  
+  def test_parses_no_newline_at_end_of_file
+    diff_data = load_diff("pseudo_recursive")
+    data = Diff::Display::Unified::Generator.run(diff_data)
+    assert_instance_of Diff::Display::NonewlineBlock, data.last
+    assert_equal 1, data.last.size
+    assert_instance_of Diff::Display::NonewlineLine, data.last[0]
+    assert_equal '\ No newline at end of file', data.last[0]
   end
   
   # def test_a_changed_string_becomes_a_modblock
@@ -113,6 +122,7 @@ class TestGenerator < Test::Unit::TestCase
     data.each do |blk| 
       blk.each do |line|
         next if line.class == Diff::Display::HeaderLine
+        next if line.class == Diff::Display::NonewlineLine
         linenos << [line.old_number, line.new_number]
       end
     end

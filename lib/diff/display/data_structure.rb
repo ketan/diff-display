@@ -20,10 +20,26 @@ module Diff
               diff << "+#{line}\n"
             when RemLine
               diff << "-#{line}\n"
+            when NonewlineLine
+              diff << line
             end
           end
         end
         diff.chomp
+      end
+      
+      def debug
+        demodularize = Proc.new {|obj| obj.class.name[/\w+$/]}
+        each do |diff_block|
+          print "-" * 40, ' ', demodularize.call(diff_block)
+          puts
+          puts diff_block.map {|line| 
+            "%5d" % line.old_number + 
+            " [#{demodularize.call(line)}#{'(i)' if line.inline_changes?}]" +
+            line
+          }.join("\n")
+          puts "-" * 40, ' ' 
+        end
       end
     end
     
@@ -44,6 +60,10 @@ module Diff
       
         def unmod(line, old_number, new_number)
           UnModLine.new(line, old_number, new_number)
+        end
+        
+        def nonewline(line)
+          NonewlineLine.new(line)
         end
         
         def header(line)
@@ -92,6 +112,12 @@ module Diff
       end
     end
     
+    class NonewlineLine < Line
+      def initialize(line = '\\ No newline at end of file')
+        super(line)
+      end      
+    end
+    
     class UnModLine < Line
       def initialize(line, old_number, new_number)
         super(line, old_number, new_number)
@@ -125,6 +151,7 @@ module Diff
         def mod;    ModBlock.new    end
         def unmod;  UnModBlock.new  end
         def header; HeaderBlock.new end
+        def nonewline; NonewlineBlock.new end
       end
     end
 
@@ -135,6 +162,7 @@ module Diff
     class UnModBlock  < Block;  end
     class SepBlock    < Block;  end
     class HeaderBlock < Block;  end
+    class NonewlineBlock < Block; end
     #:startdoc:#
   end
 end

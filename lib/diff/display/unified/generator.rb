@@ -12,7 +12,7 @@ module Diff::Display
     
     # Extracts the line number info for a given diff section
     LINE_NUM_RE = /^@@ [+-]([0-9]+)(?:,([0-9]+))? [+-]([0-9]+)(?:,([0-9]+))? @@/
-    LINE_TYPES  = {'+' => :add, '-' => :rem, ' ' => :unmod}
+    LINE_TYPES  = {'+' => :add, '-' => :rem, ' ' => :unmod, '\\' => :nonewline}
     
     # Runs the generator on a diff and returns a Data object
     def self.run(udiff)
@@ -72,7 +72,7 @@ module Diff::Display
       end
       
       new_line_type, line = LINE_TYPES[car(line)], cdr(line)
-      
+      #pp [2, line.to_s.strip, @line_type, @prev_line_type, @prev_buffer, @buffer]
       # Add line to the buffer if it's the same diff line type
       # as the previous line
       # 
@@ -102,6 +102,7 @@ module Diff::Display
         
         @buffer = [line]
         @line_type = new_line_type
+        #pp [2, line.to_s.strip, @line_type, @prev_line_type, @prev_buffer, @buffer]
       end
       
       #p [line.to_s, @line_type, @prev_line_type, @prev_buffer, @buffer]
@@ -112,7 +113,7 @@ module Diff::Display
         return true if ['+++ ', '--- '].include?(line[0,4])
         return true if line =~ /^(new|delete) file mode [0-9]+$/
         return true if line =~ /^diff \-\-git/
-        return true if line =~ /^index \w+\.\.\w+ [0-9]+$/
+        return true if line =~ /^index \w+\.\.\w+( [0-9]+)?$/i
         false
       end
       
@@ -143,6 +144,11 @@ module Diff::Display
 
       def process_block(diff_line_type, isnew = false, isold = false)
         push Block.send(diff_line_type)
+        
+        # \\ No newline at end of file
+        if diff_line_type == :nonewline
+          current_block << Line.nonewline('\ No newline at end of file')
+        end
         
         # Mod block
         if diff_line_type.eql?(:mod) && (@prev_buffer.size & @buffer.size) == 1
