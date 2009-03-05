@@ -9,19 +9,20 @@ module Diff
         diff = ""
         each do |block|
           block.each do |line|
+            line_str = line.expand_inline_changes_with(nil, nil)
             case line
             when HeaderLine
-              diff << "#{line}\n"
+              diff << "#{line_str}\n"
             when UnModLine
-              diff << " #{line}\n"
+              diff << " #{line_str}\n"
             when SepLine
               diff << "\n"
             when AddLine
-              diff << "+#{line}\n"
+              diff << "+#{line_str}\n"
             when RemLine
-              diff << "-#{line}\n"
+              diff << "-#{line_str}\n"
             when NonewlineLine
-              diff << line
+              diff << line_str
             end
           end
         end
@@ -80,9 +81,21 @@ module Diff
       end
       attr_reader :old_number, :new_number
       
+      def identifier
+        self.class.name[/\w+$/].gsub(/Line$/, "").downcase.to_sym
+      end
+      
       def inline_changes?
         # Is set in the AddLine+RemLine subclasses
         @inline
+      end
+      
+      def expand_inline_changes_with(prefix, postfix)
+        return self.dup unless inline_changes?
+        str = self.dup
+        str.sub!('\\0', prefix.to_s)
+        str.sub!('\\1', postfix.to_s)
+        str
       end
       
       def inspect

@@ -25,7 +25,6 @@ module Diff::Display
     
     def initialize
       @buffer         = []
-      @prev_buffer    = []
       @line_type      = nil
       @prev_line_type = nil
       @offset         = [0, 0]
@@ -44,25 +43,17 @@ module Diff::Display
     # has been collected and processed.
     def finish
       # certain things could be set now that processing is done
-      identify_block
+      #identify_block
     end
     
-    # Operates on a single line from the diff and passes along the
-    # collected data to the appropriate method for further processing. The
-    # cycle of processing is in general:
-    #
-    #   process --> identify_block --> process_block --> process_line 
-    #    
     def process(line)      
       if is_header_line?(line)
-        identify_block
         push Block.header
         current_block << Line.header(line)
         return
       end
       
       if line =~ LINE_NUM_RE
-        identify_block
         push Block.header
         current_block << Line.header(line)
         add_separator unless @offset[0].zero?
@@ -71,41 +62,21 @@ module Diff::Display
         return
       end
       
-      new_line_type, line = LINE_TYPES[car(line)], cdr(line)
-      #pp [2, line.to_s.strip, @line_type, @prev_line_type, @prev_buffer, @buffer]
-      # Add line to the buffer if it's the same diff line type
-      # as the previous line
-      # 
-      # e.g. 
-      #
-      #   + This is a new line
-      #   + As is this one
-      #   + And yet another one...
-      #
-      if new_line_type == @line_type
-        @buffer.push(line)
-      else
-        # Side by side inline diff
-        #
-        # e.g.
-        #
-        #   - This line just had to go
-        #   + This line is on the way in
-        #
-        if new_line_type == :add && @line_type == :rem
-          @prev_buffer = @buffer
-          @prev_line_type = @line_type
-        # else
-        #   identify_block
-        end
-        identify_block
-        
-        @buffer = [line]
-        @line_type = new_line_type
-        #pp [2, line.to_s.strip, @line_type, @prev_line_type, @prev_buffer, @buffer]
+      @line_type, line = LINE_TYPES[car(line)], cdr(line)
+      
+      if @line_type == :add && @prev_line_type == :rem
+        @offset[0] -= 1
+        @buffer.push current_block.pop
+        @buffer.push line
+        process_block(:mod, false)
+        return
       end
       
-      #p [line.to_s, @line_type, @prev_line_type, @prev_buffer, @buffer]
+      if LINE_TYPES.values.include?(@line_type)
+        @buffer.push(line.to_s)
+        process_block(@line_type, true)
+      end
+      
     end
     
     protected
@@ -116,64 +87,61 @@ module Diff::Display
         return true if line =~ /^index \w+\.\.\w+( [0-9]+)?$/i
         false
       end
-      
-      # def identify_block
-      #   if LINE_TYPES.values.include?(@line_type)
-      #     process_block(@line_type)
-      #   end
-      # 
-      #   @prev_line_type = nil
-      # end
-      
-      # def process_block(diff_line_type)
-      #   push Block.send(diff_line_type)
-      #   unroll_buffer
-      # end
-      def identify_block
-        if @prev_line_type == :rem && @line_type == :add
-          
-          process_block(:mod, true, true)
-        else
-          if LINE_TYPES.values.include?(@line_type)
-            process_block(@line_type, true)
-          end
-        end
-      
-        @prev_line_type = nil
-      end
 
-      def process_block(diff_line_type, isnew = false, isold = false)
+      def process_block(diff_line_type, isnew = false)
+        @data.pop unless isnew
         push Block.send(diff_line_type)
+        
+        current_line = @buffer.pop
+        return unless current_line
         
         # \\ No newline at end of file
         if diff_line_type == :nonewline
-          current_block << Line.nonewline('\ No newline at end of file')
-        end
-        
-        # Mod block
-        if diff_line_type.eql?(:mod) && (@prev_buffer.size & @buffer.size) == 1
-          process_line(@prev_buffer.first, @buffer.first)
+          current_block << Line.nonewline('\\ No newline at end of file')
           return
         end
-
-        unroll_prev_buffer if isold
-        unroll_buffer      if isnew
+        
+        if isnew
+          process_line(current_line, diff_line_type)
+        else
+          process_lines_with_differences(@buffer.shift, current_line)
+          raise "buffer exceeded #{@buffer.inspect}" unless @buffer.empty?
+        end
+      end
+      
+      def process_line(line, type, inline = false)
+        case type
+          when :add
+            @offset[1] += 1
+            current_block << Line.send(type, line, @offset[1], inline)
+          when :rem
+            @offset[0] += 1
+            current_block << Line.send(type, line, @offset[0], inline)
+          # when :rmod
+          #   @offset[0] += 1
+          #   @offset[1] += 1 # TODO: is that really correct?
+          #   current_block << Line.send(@prev_line_type, line, @offset[0])
+          when :unmod
+            @offset[0] += 1
+            @offset[1] += 1
+            current_block << Line.send(type, line, *@offset)
+        end
+        @prev_line_type = type
       end
 
       # TODO Needs a better name...it does process a line (two in fact) but
       # its primary function is to add a Rem and an Add pair which
       # potentially have inline changes
-      def process_line(oldline, newline)
-        #p [oldline, newline]
+      def process_lines_with_differences(oldline, newline)
         start, ending = get_change_extent(oldline, newline)
 
         # -
         line = inline_diff(oldline, start, ending)
-        current_block << Line.rem(line, @offset[0] += 1, true)
+        process_line(line, :rem, true)
 
         # +
         line = inline_diff(newline, start, ending)
-        current_block << Line.add(line, @offset[1] += 1, true)
+        process_line(line, :add, true)
       end
 
       def extract_change(line, start, ending)
@@ -186,7 +154,7 @@ module Diff::Display
       def inline_diff(line, start, ending)
         return line if (start-ending) == start
         line[0, start] + 
-          '%s' + extract_change(line, start, ending) + '%s' + 
+          '\\0' + extract_change(line, start, ending) + '\\1' + 
           line[ending, ending.abs]
       end
       
@@ -211,59 +179,6 @@ module Diff::Display
       # Adds a Line object onto the current Block object 
       def push(line)
         @data.push line
-      end
-
-      def prev_buffer
-        @prev_buffer
-      end
-      
-      def unroll_prev_buffer
-        # return if @prev_buffer.empty?
-        # @prev_buffer.each  do |line| 
-        #   @offset[0] += 1 
-        #   current_block << Line.send(@prev_line_type, line, @offset[0])
-        # end
-        return if @prev_buffer.empty?
-        @prev_buffer.each do |line| 
-          case @prev_line_type
-            when :add
-              @offset[1] += 1
-              current_block << Line.send(@prev_line_type, line, @offset[1])
-            when :rem
-              @offset[0] += 1
-              current_block << Line.send(@prev_line_type, line, @offset[0])
-            when :rmod
-              @offset[0] += 1
-              @offset[1] += 1 # TODO: is that really correct?
-              current_block << Line.send(@prev_line_type, line, @offset[0])
-            when :unmod
-              @offset[0] += 1
-              @offset[1] += 1
-              current_block << Line.send(@prev_line_type, line, *@offset)
-          end
-        end
-      end
-
-      def unroll_buffer
-        return if @buffer.empty?
-        @buffer.each do |line| 
-          case @line_type
-            when :add
-              @offset[1] += 1
-              current_block << Line.send(@line_type, line, @offset[1])
-            when :rem
-              @offset[0] += 1
-              current_block << Line.send(@line_type, line, @offset[0])
-            when :rmod
-              @offset[0] += 1
-              @offset[1] += 1 # TODO: is that really correct?
-              current_block << Line.send(@line_type, line, @offset[0])
-            when :unmod
-              @offset[0] += 1
-              @offset[1] += 1
-              current_block << Line.send(@line_type, line, *@offset)
-          end
-        end
       end
 
       # Determines the extent of differences between two string. Returns

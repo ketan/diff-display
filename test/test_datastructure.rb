@@ -45,6 +45,14 @@ class TestDatastructure < Test::Unit::TestCase
     assert_instance_of Diff::Display::HeaderLine, line
   end
   
+  def test_has_an_identifier
+    assert_equal :add, Diff::Display::Line.add("foo", 7).identifier
+    assert_equal :rem, Diff::Display::Line.rem("foo", 7).identifier
+    assert_equal :unmod, Diff::Display::Line.unmod("foo", 7, 8).identifier
+    assert_equal :header, Diff::Display::Line.header("foo").identifier
+    assert_equal :nonewline, Diff::Display::Line.nonewline("foo").identifier
+  end
+  
   # Block
   def test_block_behaves_like_an_array
     block = Diff::Display::Block.new

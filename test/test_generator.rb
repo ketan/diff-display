@@ -38,8 +38,6 @@ class TestGenerator < Test::Unit::TestCase
   def test_big
     diff_data = load_diff("big")
     data = Diff::Display::Unified::Generator.run(diff_data)
-    # puts data.to_diff
-    # assert false
     assert_equal diff_data.chomp, data.to_diff
   end
   
@@ -58,27 +56,30 @@ class TestGenerator < Test::Unit::TestCase
   def test_parses_no_newline_at_end_of_file
     diff_data = load_diff("pseudo_recursive")
     data = Diff::Display::Unified::Generator.run(diff_data)
+    assert_equal diff_data.chomp, data.to_diff
     assert_instance_of Diff::Display::NonewlineBlock, data.last
     assert_equal 1, data.last.size
     assert_instance_of Diff::Display::NonewlineLine, data.last[0]
-    assert_equal '\ No newline at end of file', data.last[0]
+    assert_equal '\\ No newline at end of file', data.last[0]
   end
   
-  # def test_a_changed_string_becomes_a_modblock
-  #   diff_data = load_diff("simple_oneliner")
-  #   data = Diff::Display::Unified::Generator.run(diff_data)
-  #   puts data.debug
-  #   assert_equal 1, data.size
-  #   assert_instance_of Diff::Display::ModBlock, data.first
-  #   assert_equal 2, data[0].size, data[0].inspect
-  #   
-  #   rem = @generator.data[0][0]
-  #   add = @generator.data[0][1]    
-  #   assert_instance_of Diff::Display::RemLine, rem
-  #   assert_instance_of Diff::Display::AddLine, add    
-  #   assert add.inline_changes?
-  #   assert rem.inline_changes?
-  # end
+  def test_a_changed_string_becomes_a_modblock
+    diff_data = load_diff("simple_oneliner")
+    data = Diff::Display::Unified::Generator.run(diff_data)
+    
+    assert_equal diff_data.chomp, data.to_diff
+    assert_equal 6, data.size
+    modblock = data[4]
+    assert_instance_of Diff::Display::ModBlock, modblock
+    assert_equal 2, modblock.size, modblock.inspect
+    
+    rem = modblock[0]
+    add = modblock[1]
+    assert_instance_of Diff::Display::RemLine, rem
+    assert_instance_of Diff::Display::AddLine, add    
+    assert add.inline_changes?
+    assert rem.inline_changes?
+  end
 
   # line numbering
   def test_numbers_correctly_for_multiple_adds_after_rem
