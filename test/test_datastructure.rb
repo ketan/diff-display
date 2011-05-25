@@ -97,4 +97,23 @@ class TestDatastructure < Test::Unit::TestCase
     assert_instance_of Diff::Display::HeaderBlock, block
   end
   
+  def test_stats
+    data = Diff::Display::Data.new
+    
+    block = Diff::Display::Block.add
+    data << block
+    
+    block << Diff::Display::Line.add("", 7, 2)
+    block << Diff::Display::Line.add("", 10, 2)
+
+    block = Diff::Display::Block.rem
+    data << block
+    
+    block << Diff::Display::Line.rem("", 13, 2)
+    block << Diff::Display::Line.rem("", 19, 2)
+    block << Diff::Display::Line.rem("", 25, 2)
+    
+    assert_equal 2, data.stats[:additions]
+    assert_equal 3, data.stats[:deletions]
+  end
 end

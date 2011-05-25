@@ -3,6 +3,22 @@ module Diff
     class Data < Array
       def initialize
         super
+        @stats = {:additions => 0, :deletions => 0}
+      end
+
+      def stats
+        @stats = {:additions => 0, :deletions => 0}
+        each do |block|
+          block.each do |line|
+            case line
+            when Diff::Display::AddLine
+              @stats[:additions] += 1
+            when Diff::Display::RemLine
+              @stats[:deletions] += 1
+            end
+          end
+        end
+        @stats
       end
       
       def to_diff
@@ -53,12 +69,12 @@ module Diff
     # a SepLine class which represents all the lines that aren't part of the diff.
     class Line < String
       class << self
-        def add(line, line_number, inline = false)
-          AddLine.new(line, line_number, inline)
+        def add(line, line_number, inline = false, offsets = [])
+          AddLine.new(line, line_number, inline, offsets)
         end
       
-        def rem(line, line_number, inline = false)
-          RemLine.new(line, line_number, inline)
+        def rem(line, line_number, inline = false, offsets = [])
+          RemLine.new(line, line_number, inline, offsets)
         end
       
         def unmod(line, old_number, new_number)
@@ -111,30 +127,23 @@ module Diff
         %Q{#<#{self.class.name} [#{old_number.inspect}-#{new_number.inspect}] "#{self}">}
       end
     end
-    
-    # class AddLine < Line
-    #   def initialize(line, line_number)
-    #     super(line, nil, line_number)
-    #   end
-    # end
-    # 
-    # class RemLine < Line
-    #   def initialize(line, line_number)
-    #     super(line, line_number, nil)
-    #   end
-    # end
+
     class AddLine < Line
-      def initialize(line, line_number, inline = false)
+      def initialize(line, line_number, inline = false, offsets = [])
         super(line, nil, line_number)
         @inline = inline
+        @offsets = offsets
       end
+      attr_reader :offsets
     end
     
     class RemLine < Line
-      def initialize(line, line_number, inline = false)
+      def initialize(line, line_number, inline = false, offsets = [])
         super(line, line_number, nil)
         @inline = inline
+        @offsets = offsets
       end
+      attr_reader :offsets
     end
     
     class NonewlineLine < Line
