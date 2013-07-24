@@ -68,9 +68,9 @@ module Diff::Display
         return
       end
       
-      @line_type, line = LINE_TYPES[car(line)], cdr(line)
+      @line_type, line = LINE_TYPES[line[0,1]], line[1..-1]
       
-      if @line_type == :add && @prev_line_type == :rem
+      if (@line_type == :add && @prev_line_type == :rem)
         @offset[0] -= 1
         @buffer.push current_block.pop
         @buffer.push line
@@ -168,14 +168,6 @@ module Diff::Display
       def add_separator
         push SepBlock.new 
         current_block << SepLine.new
-      end
-
-      def car(line)
-        line[0,1]
-      end
-
-      def cdr(line)
-        line[1..-1]
       end
 
       # Returns the current Block object

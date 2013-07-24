@@ -1,0 +1,17 @@
+diff --git a/app/views/repositories/show.html.erb b/app/views/repositories/show.html.erb
+index 5d58dd0..713163e 100644
+--- a/app/views/repositories/show.html.erb
++++ b/app/views/repositories/show.html.erb
+@@ -3,9 +3,9 @@
+ <div class='commits'>
+   <div class='title'>Commits</div>
+   <% if !@commits.blank? %>
+-    <table>
+-      <%= render :partial => "shared/commit", :collection => @commits[0..9], :locals => {:repository => @repository} %>
+-    </table>
++    <div>
++      <%= render :partial => "shared/commit", :collection => @commits[0..90], :locals => {:repository => @repository} %>
++    </div>
+   <% else %>
+     No branches
+   <% end %>

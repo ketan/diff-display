@@ -130,6 +130,11 @@ class TestGenerator < Test::Unit::TestCase
       Diff::Display::Unified::Generator.run(diff_data)
     end
   end
+  
+  def test_handles_diffs_with_block_add_and_remove_next_to_each_other
+    data = Diff::Display::Unified::Generator.run(load_diff('single_change'))
+    puts
+  end
 
   protected
   def line_numbers_for(diff)
